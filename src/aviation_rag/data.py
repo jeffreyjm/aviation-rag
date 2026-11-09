@@ -10,11 +10,12 @@ investigator would use, and split them into two groups on purpose:
 """
 
 from __future__ import annotations
+
+import json
 import urllib.request
 from pathlib import Path
 
 from . import config
-
 
 COL = {
     "id": "acn_num_ACN",
@@ -36,22 +37,16 @@ COL = {
     "narrative2": "Report 2_Narrative",
 }
 
-
 CONTEXT_FIELDS = ("aircraft", "operator", "far_part", "mission", "phase", "conditions")
-
-
 LIST_FIELDS = ("anomaly", "contributing", "human_factors", "result")
-
 
 
 def _s(v) -> str:
     return " ".join(str(v or "").split())
 
 
-
 def _split_list(v) -> list[str]:
     return [x.strip() for x in _s(v).split(";") if x.strip()]
-
 
 
 def normalise(raw: dict) -> dict | None:
@@ -78,7 +73,6 @@ def normalise(raw: dict) -> dict | None:
     return rec
 
 
-
 def download(raw_dir: Path = config.RAW_DIR, log=print) -> list[Path]:
     raw_dir.mkdir(parents=True, exist_ok=True)
     paths = []
@@ -89,3 +83,26 @@ def download(raw_dir: Path = config.RAW_DIR, log=print) -> list[Path]:
             urllib.request.urlretrieve(config.HF_BASE.format(split=split), dest)
         paths.append(dest)
     return paths
+
+
+def build_reports(raw_paths: list[Path], out_path: Path = config.REPORTS_PATH) -> list[dict]:
+    seen: set[str] = set()
+    out: list[dict] = []
+    for p in raw_paths:
+        with p.open() as f:
+            for line in f:
+                rec = normalise(json.loads(line))
+                if rec and rec["id"] not in seen:
+                    seen.add(rec["id"])
+                    out.append(rec)
+    out.sort(key=lambda r: r["id"])
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    with out_path.open("w") as f:
+        for r in out:
+            f.write(json.dumps(r, ensure_ascii=False) + "\n")
+    return out
+
+
+def load_reports(path: Path = config.REPORTS_PATH) -> list[dict]:
+    with path.open() as f:
+        return [json.loads(line) for line in f if line.strip()]
