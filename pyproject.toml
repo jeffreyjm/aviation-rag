@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aviation-rag"
+version = "0.1.0"
+description = "Precedent search and cited investigation drafting over NASA ASRS reports, with an evaluation harness"
+requires-python = ">=3.10"
+dependencies = ["numpy", "rank-bm25", "sentence-transformers>=3"]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[project.scripts]
+aviation-rag = "aviation_rag.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
