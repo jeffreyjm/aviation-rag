@@ -22,3 +22,9 @@ RESULTS_DIR = ROOT / "eval" / "results"
 
 
 OOD_PATH = ROOT / "eval" / "ood_queries.jsonl"
+
+
+HF_BASE = "https://huggingface.co/datasets/elihoole/asrs-aviation-reports/resolve/main/asrs-aviation-reports-{split}.jsonl"
+
+
+SPLITS = ("test", "validation")

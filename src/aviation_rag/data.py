@@ -10,6 +10,10 @@ investigator would use, and split them into two groups on purpose:
 """
 
 from __future__ import annotations
+import urllib.request
+from pathlib import Path
+
+from . import config
 
 
 COL = {
@@ -72,3 +76,16 @@ def normalise(raw: dict) -> dict | None:
     for f in LIST_FIELDS:
         rec[f] = _split_list(raw.get(COL[f]))
     return rec
+
+
+
+def download(raw_dir: Path = config.RAW_DIR, log=print) -> list[Path]:
+    raw_dir.mkdir(parents=True, exist_ok=True)
+    paths = []
+    for split in config.SPLITS:
+        dest = raw_dir / f"asrs-{split}.jsonl"
+        if not dest.exists():
+            log(f"downloading {split} ...")
+            urllib.request.urlretrieve(config.HF_BASE.format(split=split), dest)
+        paths.append(dest)
+    return paths
