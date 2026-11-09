@@ -47,3 +47,28 @@ def _s(v) -> str:
 
 def _split_list(v) -> list[str]:
     return [x.strip() for x in _s(v).split(";") if x.strip()]
+
+
+
+def normalise(raw: dict) -> dict | None:
+    """Raw ASRS row -> compact record, or None if it lacks an id, narrative or synopsis."""
+    narrative = _s(raw.get(COL["narrative"]))
+    synopsis = _s(raw.get(COL["synopsis"]))
+    acn = _s(raw.get(COL["id"]))
+    if not (acn and narrative and synopsis):
+        return None
+    date = _s(raw.get(COL["date"]))
+    rec = {
+        "id": acn,
+        "year": int(date[:4]) if date[:4].isdigit() else None,
+        "month": int(date[4:6]) if date[4:6].isdigit() else None,
+        "narrative": narrative,
+        "narrative2": _s(raw.get(COL["narrative2"])),
+        "synopsis": synopsis,
+        "primary_problem": _s(raw.get(COL["primary_problem"])),
+    }
+    for f in CONTEXT_FIELDS:
+        rec[f] = _s(raw.get(COL[f]))
+    for f in LIST_FIELDS:
+        rec[f] = _split_list(raw.get(COL[f]))
+    return rec
