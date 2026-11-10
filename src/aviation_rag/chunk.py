@@ -10,6 +10,7 @@ analyst labels, so chunks are self-describing without leaking evaluation targets
 from __future__ import annotations
 
 import re
+from dataclasses import asdict, dataclass, field
 
 
 _ABBREV = re.compile(r"\b(approx|etc|vs|e\.g|i\.e|no|rwy|twy|alt|hdg|dept|apch|cpt|fo|capt)\.", re.I)
@@ -65,3 +66,34 @@ def pack(text: str, budget: int = 700) -> list[str]:
     if cur:
         chunks.append(cur)
     return [" ".join(c) for c in chunks]
+
+
+
+def context_header(rec: dict) -> str:
+    parts = [rec.get("aircraft"), rec.get("phase"), rec.get("far_part"), str(rec["year"]) if rec.get("year") else ""]
+    return " | ".join(p for p in parts if p)
+
+
+
+META_KEYS = ("aircraft", "operator", "far_part", "phase", "conditions", "year")
+
+
+
+@dataclass(frozen=True)
+class Chunk:
+    chunk_id: str  # "<report_id>#<n>"
+    report_id: str
+    text: str
+    header: str
+    position: int
+    meta: dict = field(default_factory=dict)  # filterable context only, never labels
+
+
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+
+    @property
+    def embed_text(self) -> str:
+        return f"[{self.header}] {self.text}" if self.header else self.text
