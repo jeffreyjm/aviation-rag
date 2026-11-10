@@ -12,13 +12,8 @@ from __future__ import annotations
 import re
 from dataclasses import asdict, dataclass, field
 
-
 _ABBREV = re.compile(r"\b(approx|etc|vs|e\.g|i\.e|no|rwy|twy|alt|hdg|dept|apch|cpt|fo|capt)\.", re.I)
-
-
 _SPLIT = re.compile(r"(?<=[.!?])\s+(?=[A-Z0-9\[(\"'])")
-
-
 _MASK = "․"  # one-dot leader: stands in for protected periods
 
 
@@ -27,7 +22,6 @@ def split_sentences(text: str) -> list[str]:
     masked = _ABBREV.sub(lambda m: m.group(0)[:-1] + _MASK, text)
     parts = _SPLIT.split(masked.strip())
     return [p.replace(_MASK, ".").strip() for p in parts if p.strip()]
-
 
 
 def _hard_wrap(s: str, limit: int) -> list[str]:
@@ -44,7 +38,6 @@ def _hard_wrap(s: str, limit: int) -> list[str]:
     if cur:
         out.append(" ".join(cur))
     return out
-
 
 
 def pack(text: str, budget: int = 700) -> list[str]:
@@ -68,15 +61,12 @@ def pack(text: str, budget: int = 700) -> list[str]:
     return [" ".join(c) for c in chunks]
 
 
-
 def context_header(rec: dict) -> str:
     parts = [rec.get("aircraft"), rec.get("phase"), rec.get("far_part"), str(rec["year"]) if rec.get("year") else ""]
     return " | ".join(p for p in parts if p)
 
 
-
 META_KEYS = ("aircraft", "operator", "far_part", "phase", "conditions", "year")
-
 
 
 @dataclass(frozen=True)
@@ -88,16 +78,12 @@ class Chunk:
     position: int
     meta: dict = field(default_factory=dict)  # filterable context only, never labels
 
-
-
     def to_dict(self) -> dict:
         return asdict(self)
-
 
     @property
     def embed_text(self) -> str:
         return f"[{self.header}] {self.text}" if self.header else self.text
-
 
 
 def chunk_report(rec: dict, budget: int = 700) -> list[Chunk]:
@@ -107,3 +93,10 @@ def chunk_report(rec: dict, budget: int = 700) -> list[Chunk]:
     if rec.get("narrative2"):
         pieces += pack("Second reporter: " + rec["narrative2"], budget)
     return [Chunk(f"{rec['id']}#{n}", rec["id"], t, header, n, meta) for n, t in enumerate(pieces)]
+
+
+def chunk_reports(recs: list[dict], **kw) -> list[Chunk]:
+    out: list[Chunk] = []
+    for r in recs:
+        out.extend(chunk_report(r, **kw))
+    return out
