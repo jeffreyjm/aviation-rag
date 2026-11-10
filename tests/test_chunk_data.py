@@ -1,4 +1,4 @@
-from aviation_rag.chunk import pack, split_sentences
+from aviation_rag.chunk import chunk_report, pack, split_sentences
 from aviation_rag.data import normalise
 
 
@@ -17,6 +17,13 @@ def test_pack_hard_wraps_runon_text_without_punctuation():
     chunks = pack(runon, budget=200)
     assert len(chunks) > 5 and all(len(c) <= 200 for c in chunks)
     assert " ".join(chunks).split().count("approach") >= 60  # nothing lost
+
+
+
+def test_second_reporter_is_appended():
+    r = dict(narrative="First view.", narrative2="Other view.", id="9", year=2020, aircraft="X", phase="Taxi", far_part="")
+    texts = [c.text for c in chunk_report(r)]
+    assert any(t.startswith("Second reporter:") for t in texts)
 
 
 

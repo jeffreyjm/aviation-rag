@@ -97,3 +97,13 @@ class Chunk:
     @property
     def embed_text(self) -> str:
         return f"[{self.header}] {self.text}" if self.header else self.text
+
+
+
+def chunk_report(rec: dict, budget: int = 700) -> list[Chunk]:
+    header = context_header(rec)
+    meta = {k: rec.get(k, "") for k in META_KEYS}
+    pieces = pack(rec["narrative"], budget)
+    if rec.get("narrative2"):
+        pieces += pack("Second reporter: " + rec["narrative2"], budget)
+    return [Chunk(f"{rec['id']}#{n}", rec["id"], t, header, n, meta) for n, t in enumerate(pieces)]
