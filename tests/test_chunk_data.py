@@ -1,4 +1,4 @@
-from aviation_rag.chunk import chunk_report, pack, split_sentences
+from aviation_rag.chunk import chunk_report, context_header, pack, split_sentences
 from aviation_rag.data import normalise
 
 
@@ -20,10 +20,21 @@ def test_pack_hard_wraps_runon_text_without_punctuation():
 
 
 
+def test_short_narrative_is_one_chunk(reports):
+    assert len(chunk_report(reports[0])) == 1
+
+
+
 def test_second_reporter_is_appended():
     r = dict(narrative="First view.", narrative2="Other view.", id="9", year=2020, aircraft="X", phase="Taxi", far_part="")
     texts = [c.text for c in chunk_report(r)]
     assert any(t.startswith("Second reporter:") for t in texts)
+
+
+
+def test_header_is_context_only(reports):
+    h = context_header(reports[0])
+    assert h == "B737-800 | Landing | Part 121 | 2018"
 
 
 
