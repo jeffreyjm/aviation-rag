@@ -32,6 +32,17 @@ def test_second_reporter_is_appended():
 
 
 
+def test_no_analyst_labels_leak_into_indexed_text(reports):
+    """Labels must never appear in indexed text or filter metadata."""
+    for r in reports:
+        labels = {x.lower() for x in [r["primary_problem"], *r["anomaly"], *r["contributing"], *r["human_factors"], *r["result"]]}
+        for c in chunk_report(r):
+            added = [c.header.lower(), str(c.meta).lower()]
+            for label in labels:
+                assert not any(label in a for a in added), f"label {label!r} leaked into chunk {c.chunk_id}"
+
+
+
 def test_header_is_context_only(reports):
     h = context_header(reports[0])
     assert h == "B737-800 | Landing | Part 121 | 2018"
