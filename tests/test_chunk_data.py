@@ -33,13 +33,21 @@ def test_second_reporter_is_appended():
 
 
 def test_no_analyst_labels_leak_into_indexed_text(reports):
-    """Labels must never appear in indexed text or filter metadata."""
+    """Precedent-quality eval is only valid if analyst labels are never *added* to indexed text.
+
+    The narrative is raw reporter text and may use any word; what we guard is that the
+    chunk header and filterable metadata values (everything we add) carry no labels, and
+    that the only metadata keys are the declared context fields."""
+    from aviation_rag.chunk import META_KEYS
+
     for r in reports:
         labels = {x.lower() for x in [r["primary_problem"], *r["anomaly"], *r["contributing"], *r["human_factors"], *r["result"]]}
         for c in chunk_report(r):
-            added = [c.header.lower(), str(c.meta).lower()]
+            assert set(c.meta) == set(META_KEYS)
+            added = [c.header.lower()] + [str(v).lower() for v in c.meta.values()]
             for label in labels:
                 assert not any(label in a for a in added), f"label {label!r} leaked into chunk {c.chunk_id}"
+            assert c.embed_text == f"[{c.header}] {c.text}"  # nothing else is prepended
 
 
 
