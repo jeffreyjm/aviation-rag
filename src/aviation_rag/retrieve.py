@@ -101,3 +101,10 @@ class Retriever:
         if key not in self._mask_cache:
             self._mask_cache[key] = np.array([matches(c.meta, filters) for c in self.index.chunks])
         return self._mask_cache[key]
+
+
+    def _topn(self, scores: np.ndarray, n: int, mask: np.ndarray | None) -> list[int]:
+        if mask is not None:
+            scores = np.where(mask, scores, -np.inf)
+        order = np.argsort(-scores)[:n]
+        return [int(i) for i in order if np.isfinite(scores[i])]
