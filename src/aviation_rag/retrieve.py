@@ -88,3 +88,16 @@ class Retriever:
         self.embedder = embedder or Embedder()
         self.reranker = reranker or Reranker()
         self._mask_cache: dict[tuple, np.ndarray] = {}
+
+
+    def mask(self, filters: dict | None) -> np.ndarray | None:
+        filters = {k: v for k, v in (filters or {}).items() if v not in (None, "", [])}
+        if not filters:
+            return None
+        bad = set(filters) - set(FILTER_KEYS)
+        if bad:
+            raise ValueError(f"unknown filters {sorted(bad)}; valid: {sorted(FILTER_KEYS)}")
+        key = tuple(sorted(filters.items()))
+        if key not in self._mask_cache:
+            self._mask_cache[key] = np.array([matches(c.meta, filters) for c in self.index.chunks])
+        return self._mask_cache[key]
