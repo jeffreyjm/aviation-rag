@@ -8,6 +8,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+import numpy as np
+
+from .index import Index
+from .models import Embedder, Reranker
+
 
 MODES = ("bm25", "dense", "hybrid", "hybrid+rerank")
 
@@ -71,3 +76,15 @@ def matches(meta: dict, filters: dict) -> bool:
         if kind == "max" and (have in (None, "") or int(have) > int(want)):
             return False
     return True
+
+
+
+class Retriever:
+
+
+
+    def __init__(self, index: Index, embedder: Embedder | None = None, reranker: Reranker | None = None):
+        self.index = index
+        self.embedder = embedder or Embedder()
+        self.reranker = reranker or Reranker()
+        self._mask_cache: dict[tuple, np.ndarray] = {}
