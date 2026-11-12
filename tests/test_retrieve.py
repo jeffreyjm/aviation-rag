@@ -32,6 +32,23 @@ def test_filter_is_applied_before_ranking(retriever):
 
 
 
+def test_filters_numeric_and_substring(retriever):
+    assert {h.report_id for h in retriever.search("taxiway", k=5, filters={"year_max": 2015})} == {"4"}
+    assert {h.report_id for h in retriever.search("climb traffic", k=5, filters={"aircraft": "a320"})} == {"3"}
+
+
+
+def test_filter_with_no_match_returns_empty(retriever):
+    assert retriever.search("anything", filters={"phase": "Parked"}) == []
+
+
+
+def test_unknown_filter_rejected(retriever):
+    with pytest.raises(ValueError):
+        retriever.search("q", filters={"colour": "red"})
+
+
+
 def test_index_roundtrip(index, tmp_path):
     from aviation_rag.index import Index
 
