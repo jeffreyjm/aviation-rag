@@ -17,7 +17,6 @@ def rec(i, narrative, synopsis, *, aircraft="B737-800", phase="Cruise", far="Par
     }
 
 
-
 REPORTS = [
     rec(1, "During the landing flare the thrust lever stuck and the engine would not respond. We went around.",
         "Crew reported a stuck thrust lever on landing.", phase="Landing", primary="Aircraft",
@@ -37,11 +36,8 @@ REPORTS = [
 ]
 
 
-
 class FakeEmbedder:
     model_name = "fake-hash-64"
-
-
 
     def _vec(self, text):
         v = np.zeros(64, dtype=np.float32)
@@ -50,14 +46,17 @@ class FakeEmbedder:
         n = np.linalg.norm(v)
         return v / n if n else v
 
-
     def encode_docs(self, texts, batch_size=64):
         return np.stack([self._vec(t) for t in texts])
-
 
     def encode_query(self, q):
         return self._vec(q)
 
+
+class FakeReranker:
+    def score(self, query, passages, batch_size=32):
+        q = set(tokenize(query))
+        return np.array([float(len(q & set(tokenize(p)))) for p in passages], dtype=np.float32)
 
 
 @pytest.fixture
@@ -65,7 +64,13 @@ def reports():
     return REPORTS
 
 
-
 @pytest.fixture
 def index(reports):
     return Index.build(reports, FakeEmbedder())
+
+
+@pytest.fixture
+def retriever(index):
+    from aviation_rag.retrieve import Retriever
+
+    return Retriever(index, embedder=FakeEmbedder(), reranker=FakeReranker())

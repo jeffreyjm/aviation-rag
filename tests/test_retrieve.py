@@ -16,6 +16,22 @@ def test_collapse_keeps_best_chunk_per_report():
 
 
 
+@pytest.mark.parametrize("mode", ["bm25", "dense", "hybrid", "hybrid+rerank"])
+def test_search_finds_obvious_report(retriever, mode):
+    hits = retriever.search("thrust lever stuck on landing flare engine would not respond", mode=mode, k=3)
+    assert hits[0].report_id == "1"
+
+
+
+def test_filter_is_applied_before_ranking(retriever):
+    # Unfiltered, report 2 is the best match; with phase=Climb it must not appear at all.
+    q = "descended below the assigned altitude with 4000 in the altitude window"
+    assert retriever.search(q, k=1)[0].report_id == "2"
+    hits = retriever.search(q, k=5, filters={"phase": "Climb"})
+    assert hits and {h.report_id for h in hits} == {"3"}
+
+
+
 def test_index_roundtrip(index, tmp_path):
     from aviation_rag.index import Index
 
