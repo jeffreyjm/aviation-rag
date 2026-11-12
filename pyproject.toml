@@ -10,6 +10,7 @@ requires-python = ">=3.10"
 dependencies = ["numpy", "rank-bm25", "sentence-transformers>=3"]
 
 [project.optional-dependencies]
+llm = ["anthropic"]
 dev = ["pytest"]
 
 [project.scripts]
