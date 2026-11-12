@@ -53,3 +53,21 @@ def collapse_to_reports(hits: list[Hit]) -> list[Hit]:
             seen.add(h.report_id)
             out.append(h)
     return out
+
+
+
+def matches(meta: dict, filters: dict) -> bool:
+    for name, want in filters.items():
+        if want in (None, "", []):
+            continue
+        key, kind = FILTER_KEYS[name]
+        have = meta.get(key)
+        if kind == "eq" and str(have).lower() != str(want).lower():
+            return False
+        if kind == "contains" and str(want).lower() not in str(have).lower():
+            return False
+        if kind == "min" and (have in (None, "") or int(have) < int(want)):
+            return False
+        if kind == "max" and (have in (None, "") or int(have) > int(want)):
+            return False
+    return True
