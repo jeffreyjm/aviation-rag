@@ -9,9 +9,13 @@ Backends share one interface, `generate(task, question, sources) -> str`:
 """
 
 from __future__ import annotations
+
+import os
 import re
 from dataclasses import dataclass, field
 from typing import Protocol
+
+from . import config
 
 
 ABSTAIN_TEXT = "I couldn't find sufficient support for that in the indexed ASRS reports."
@@ -92,3 +96,28 @@ def format_sources(sources: list[Source]) -> str:
 def build_user_prompt(task: str, question: str, sources: list[Source]) -> str:
     label = "New event description" if task == "investigate" else "Question"
     return f"Sources:\n\n{format_sources(sources)}\n\n{label}: {question}"
+
+
+
+class AnthropicGenerator:
+
+
+
+    def __init__(self, client=None, model: str | None = None, max_tokens: int = 600):
+        if client is None:
+            import anthropic
+
+            client = anthropic.Anthropic()
+        self.client = client
+        self.model = model or os.environ.get("AVIATION_RAG_MODEL", config.LLM_MODEL)
+        self.max_tokens = max_tokens
+
+
+    def generate(self, task: str, question: str, sources: list[Source]) -> str:
+        resp = self.client.messages.create(
+            model=self.model,
+            max_tokens=self.max_tokens,
+            system=SYSTEM_PROMPTS[task],
+            messages=[{"role": "user", "content": build_user_prompt(task, question, sources)}],
+        )
+        return "".join(b.text for b in resp.content if getattr(b, "type", "") == "text").strip()
