@@ -18,6 +18,7 @@ from typing import Protocol
 from . import config
 from .chunk import split_sentences
 from .models import Reranker
+from .retrieve import Hit, Retriever
 
 
 ABSTAIN_TEXT = "I couldn't find sufficient support for that in the indexed ASRS reports."
@@ -168,3 +169,24 @@ def validate_citations(text: str, n_sources: int) -> tuple[list[int], list[int]]
 
 def strip_invalid(text: str, n_sources: int) -> str:
     return _CITE.sub(lambda m: m.group(0) if 1 <= int(m.group(1)) <= n_sources else "", text)
+
+
+
+def make_sources(retriever: Retriever, hits: list[Hit], with_synopsis: bool = False) -> list[Source]:
+    out = []
+    for n, h in enumerate(hits, start=1):
+        c = retriever.index.chunks[h.chunk_idx]
+        text = c.text
+        if with_synopsis:
+            text = f"{retriever.index.reports[c.report_id]['synopsis']} {text}"
+        out.append(Source(n=n, report_id=c.report_id, title=c.header, text=text))
+    return out
+
+
+
+def finalize(raw: str, sources: list[Source], top_score: float | None) -> Answer:
+    """Turn raw generator output into an Answer (abstention token + citation validation)."""
+    if INSUFFICIENT in raw:
+        return Answer(ABSTAIN_TEXT, True, sources, top_score=top_score)
+    valid, invalid = validate_citations(raw, len(sources))
+    return Answer(strip_invalid(raw, len(sources)), False, sources, valid, invalid, top_score)
