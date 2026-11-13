@@ -151,3 +151,20 @@ class ExtractiveGenerator:
     def _first_sentence(text: str) -> str:
         s = split_sentences(text)
         return s[0] if s else text
+
+
+
+def validate_citations(text: str, n_sources: int) -> tuple[list[int], list[int]]:
+    valid: list[int] = []
+    invalid: list[int] = []
+    for m in _CITE.finditer(text):
+        n = int(m.group(1))
+        bucket = valid if 1 <= n <= n_sources else invalid
+        if n not in bucket:
+            bucket.append(n)
+    return valid, invalid
+
+
+
+def strip_invalid(text: str, n_sources: int) -> str:
+    return _CITE.sub(lambda m: m.group(0) if 1 <= int(m.group(1)) <= n_sources else "", text)

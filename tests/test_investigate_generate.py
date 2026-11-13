@@ -1,7 +1,13 @@
 from types import SimpleNamespace
 
-from aviation_rag.generate import SYSTEM_PROMPTS, AnthropicGenerator, ExtractiveGenerator, Source
+from aviation_rag.generate import SYSTEM_PROMPTS, AnthropicGenerator, ExtractiveGenerator, Source, strip_invalid, validate_citations
 from conftest import FakeReranker
+
+
+def test_validate_and_strip_citations():
+    assert validate_citations("A [1]. B [2][7].", 3) == ([1, 2], [7])
+    assert strip_invalid("A [1]. B [2][7].", 3) == "A [1]. B [2]."
+
 
 
 def test_anthropic_generator_uses_task_specific_prompt():
