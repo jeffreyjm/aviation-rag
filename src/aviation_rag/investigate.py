@@ -14,9 +14,12 @@ The tool surfaces precedent; it never asserts a cause.
 """
 
 from __future__ import annotations
+
+from collections import Counter
 from dataclasses import dataclass, field
 
 from .generate import Answer
+from .index import Index
 
 
 FACTOR_FIELDS = {
@@ -61,3 +64,41 @@ class Investigation:
     draft: Answer
     top_score: float | None
     caveats: list[str] = field(default_factory=list)
+
+
+
+def _labels(rec: dict, name: str) -> list[str]:
+    v = rec.get(name)
+    if isinstance(v, list):
+        return [x for x in dict.fromkeys(v) if x]  # de-dupe, keep order
+    return [v] if v else []
+
+
+
+def base_rates(index: Index) -> dict[str, dict[str, float]]:
+    n = len(index.reports)
+    out: dict[str, dict[str, float]] = {}
+    for name in FACTOR_FIELDS:
+        c: Counter = Counter()
+        for r in index.reports.values():
+            c.update(_labels(r, name))
+        out[name] = {lab: cnt / n for lab, cnt in c.items()}
+    return out
+
+
+
+def aggregate_factors(
+    records: list[dict], rates: dict[str, dict[str, float]], top: int = 4
+) -> dict[str, list[FactorRow]]:
+    n = len(records)
+    out: dict[str, list[FactorRow]] = {}
+    for name in FACTOR_FIELDS:
+        c: Counter = Counter()
+        for r in records:
+            c.update(_labels(r, name))
+        rows = []
+        for lab, cnt in c.most_common():
+            br = rates[name].get(lab, 0.0)
+            rows.append(FactorRow(lab, cnt, cnt / n, br, (cnt / n) / br if br else float("inf")))
+        out[name] = rows[:top]
+    return out
