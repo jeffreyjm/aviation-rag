@@ -11,6 +11,7 @@ Backends share one interface, `generate(task, question, sources) -> str`:
 from __future__ import annotations
 import re
 from dataclasses import dataclass, field
+from typing import Protocol
 
 
 ABSTAIN_TEXT = "I couldn't find sufficient support for that in the indexed ASRS reports."
@@ -72,3 +73,22 @@ class Answer:
             if by_n[n] not in out:
                 out.append(by_n[n])
         return out
+
+
+
+class Generator(Protocol):
+
+
+
+    def generate(self, task: str, question: str, sources: list[Source]) -> str: ...
+
+
+
+def format_sources(sources: list[Source]) -> str:
+    return "\n\n".join(f"[{s.n}] (ASRS {s.report_id}; {s.title})\n{s.text}" for s in sources)
+
+
+
+def build_user_prompt(task: str, question: str, sources: list[Source]) -> str:
+    label = "New event description" if task == "investigate" else "Question"
+    return f"Sources:\n\n{format_sources(sources)}\n\n{label}: {question}"
