@@ -20,22 +20,15 @@ from .chunk import split_sentences
 from .models import Reranker
 from .retrieve import Hit, Retriever
 
-
 ABSTAIN_TEXT = "I couldn't find sufficient support for that in the indexed ASRS reports."
-
-
 INSUFFICIENT = "INSUFFICIENT_EVIDENCE"
-
-
 _CITE = re.compile(r"\[(\d+)\]")
-
 
 _RULES = f"""Rules:
 1. Every factual sentence must end with one or more citations like [1] or [2][3] referring to the numbered sources.
 2. Use only information stated in the sources. Do not add outside knowledge or invent details.
 3. Sources are voluntary pilot/controller reports. Describe what reporters said happened; never state a definitive cause.
 4. If the sources do not contain enough information, reply with exactly: {INSUFFICIENT}"""
-
 
 SYSTEM_PROMPTS = {
     "qa": "You answer questions for aviation safety analysts using ONLY the numbered ASRS report excerpts provided.\n\n"
@@ -51,14 +44,12 @@ SYSTEM_PROMPTS = {
 }
 
 
-
 @dataclass
 class Source:
     n: int  # 1-based citation number shown to the model
     report_id: str
     title: str  # short context line, e.g. "B737-700 | Initial Approach | Part 121 | 2018"
     text: str
-
 
 
 @dataclass
@@ -70,8 +61,6 @@ class Answer:
     invalid_citations: list[int] = field(default_factory=list)
     top_score: float | None = None
 
-
-
     @property
     def cited_report_ids(self) -> list[str]:
         by_n = {s.n: s.report_id for s in self.sources}
@@ -82,18 +71,12 @@ class Answer:
         return out
 
 
-
 class Generator(Protocol):
-
-
-
     def generate(self, task: str, question: str, sources: list[Source]) -> str: ...
-
 
 
 def format_sources(sources: list[Source]) -> str:
     return "\n\n".join(f"[{s.n}] (ASRS {s.report_id}; {s.title})\n{s.text}" for s in sources)
-
 
 
 def build_user_prompt(task: str, question: str, sources: list[Source]) -> str:
@@ -101,11 +84,7 @@ def build_user_prompt(task: str, question: str, sources: list[Source]) -> str:
     return f"Sources:\n\n{format_sources(sources)}\n\n{label}: {question}"
 
 
-
 class AnthropicGenerator:
-
-
-
     def __init__(self, client=None, model: str | None = None, max_tokens: int = 600):
         if client is None:
             import anthropic
@@ -114,7 +93,6 @@ class AnthropicGenerator:
         self.client = client
         self.model = model or os.environ.get("AVIATION_RAG_MODEL", config.LLM_MODEL)
         self.max_tokens = max_tokens
-
 
     def generate(self, task: str, question: str, sources: list[Source]) -> str:
         resp = self.client.messages.create(
@@ -126,16 +104,12 @@ class AnthropicGenerator:
         return "".join(b.text for b in resp.content if getattr(b, "type", "") == "text").strip()
 
 
-
 class ExtractiveGenerator:
     """Offline baseline. qa: best-matching source sentences. investigate: one line per precedent."""
-
-
 
     def __init__(self, reranker: Reranker | None = None, max_sentences: int = 3):
         self.reranker = reranker or Reranker()
         self.max_sentences = max_sentences
-
 
     def generate(self, task: str, question: str, sources: list[Source]) -> str:
         if task == "investigate":
@@ -147,12 +121,10 @@ class ExtractiveGenerator:
         best = sorted(range(len(cands)), key=lambda i: scores[i], reverse=True)[: self.max_sentences]
         return " ".join(f"{cands[i][2]} [{cands[i][0]}]" for i in sorted(best, key=lambda i: cands[i][:2]))
 
-
     @staticmethod
     def _first_sentence(text: str) -> str:
         s = split_sentences(text)
         return s[0] if s else text
-
 
 
 def validate_citations(text: str, n_sources: int) -> tuple[list[int], list[int]]:
@@ -166,10 +138,8 @@ def validate_citations(text: str, n_sources: int) -> tuple[list[int], list[int]]
     return valid, invalid
 
 
-
 def strip_invalid(text: str, n_sources: int) -> str:
     return _CITE.sub(lambda m: m.group(0) if 1 <= int(m.group(1)) <= n_sources else "", text)
-
 
 
 def make_sources(retriever: Retriever, hits: list[Hit], with_synopsis: bool = False) -> list[Source]:
@@ -183,10 +153,31 @@ def make_sources(retriever: Retriever, hits: list[Hit], with_synopsis: bool = Fa
     return out
 
 
-
 def finalize(raw: str, sources: list[Source], top_score: float | None) -> Answer:
     """Turn raw generator output into an Answer (abstention token + citation validation)."""
     if INSUFFICIENT in raw:
         return Answer(ABSTAIN_TEXT, True, sources, top_score=top_score)
     valid, invalid = validate_citations(raw, len(sources))
     return Answer(strip_invalid(raw, len(sources)), False, sources, valid, invalid, top_score)
+
+
+def answer(
+    question: str,
+    retriever: Retriever,
+    generator: Generator,
+    k: int = 4,
+    abstain_below: float | None = None,
+    mode: str = "hybrid+rerank",
+    filters: dict | None = None,
+) -> Answer:
+    """Retrieve -> (abstain?) -> generate -> validate citations.
+
+    `abstain_below` thresholds the top reranker score (only meaningful for mode='hybrid+rerank');
+    calibrate it with `aviation-rag eval`.
+    """
+    hits = retriever.search(question, mode=mode, k=k, filters=filters)
+    top = hits[0].components.get("rerank") if hits else None
+    sources = make_sources(retriever, hits)
+    if not hits or (abstain_below is not None and top is not None and top < abstain_below):
+        return Answer(ABSTAIN_TEXT, True, sources, top_score=top)
+    return finalize(generator.generate("qa", question, sources), sources, top)
