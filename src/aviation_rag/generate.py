@@ -16,6 +16,8 @@ from dataclasses import dataclass, field
 from typing import Protocol
 
 from . import config
+from .chunk import split_sentences
+from .models import Reranker
 
 
 ABSTAIN_TEXT = "I couldn't find sufficient support for that in the indexed ASRS reports."
@@ -121,3 +123,31 @@ class AnthropicGenerator:
             messages=[{"role": "user", "content": build_user_prompt(task, question, sources)}],
         )
         return "".join(b.text for b in resp.content if getattr(b, "type", "") == "text").strip()
+
+
+
+class ExtractiveGenerator:
+    """Offline baseline. qa: best-matching source sentences. investigate: one line per precedent."""
+
+
+
+    def __init__(self, reranker: Reranker | None = None, max_sentences: int = 3):
+        self.reranker = reranker or Reranker()
+        self.max_sentences = max_sentences
+
+
+    def generate(self, task: str, question: str, sources: list[Source]) -> str:
+        if task == "investigate":
+            return " ".join(f"{self._first_sentence(s.text)} [{s.n}]" for s in sources[:3]) or INSUFFICIENT
+        cands = [(s.n, i, sent) for s in sources for i, sent in enumerate(split_sentences(s.text))]
+        if not cands:
+            return INSUFFICIENT
+        scores = self.reranker.score(question, [c[2] for c in cands])
+        best = sorted(range(len(cands)), key=lambda i: scores[i], reverse=True)[: self.max_sentences]
+        return " ".join(f"{cands[i][2]} [{cands[i][0]}]" for i in sorted(best, key=lambda i: cands[i][:2]))
+
+
+    @staticmethod
+    def _first_sentence(text: str) -> str:
+        s = split_sentences(text)
+        return s[0] if s else text
