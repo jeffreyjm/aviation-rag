@@ -1,9 +1,12 @@
 from types import SimpleNamespace
 
+import pytest
+
 from aviation_rag.generate import (
     ABSTAIN_TEXT, INSUFFICIENT, SYSTEM_PROMPTS, AnthropicGenerator, ExtractiveGenerator, Source,
     answer, strip_invalid, validate_citations,
 )
+from aviation_rag.investigate import aggregate_factors, base_rates
 from conftest import FakeReranker
 
 
@@ -60,3 +63,12 @@ def test_extractive_investigate_lists_precedent_synopses():
     src = [Source(1, "a", "t", "Crew had a stuck lever. More detail."), Source(2, "b", "t", "Altitude bust. Other.")]
     out = ExtractiveGenerator(FakeReranker()).generate("investigate", "q", src)
     assert out == "Crew had a stuck lever. [1] Altitude bust. [2]"
+
+
+
+def test_aggregate_factors_counts_and_lift(index):
+    rates = base_rates(index)
+    recs = [index.reports["1"], index.reports["5"]]  # both primary problem "Aircraft"
+    rows = aggregate_factors(recs, rates)["primary_problem"]
+    assert rows[0].label == "Aircraft" and rows[0].count == 2 and rows[0].share == 1.0
+    assert rows[0].base_rate == pytest.approx(2 / 5) and rows[0].lift == pytest.approx(1.0 / 0.4)
