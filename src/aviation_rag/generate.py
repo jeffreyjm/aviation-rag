@@ -10,6 +10,7 @@ Backends share one interface, `generate(task, question, sources) -> str`:
 
 from __future__ import annotations
 import re
+from dataclasses import dataclass, field
 
 
 ABSTAIN_TEXT = "I couldn't find sufficient support for that in the indexed ASRS reports."
@@ -40,3 +41,34 @@ SYSTEM_PROMPTS = {
     "'Information still needed' (questions the investigator should answer; these need no citation). "
     "Keep the whole draft under 200 words.",
 }
+
+
+
+@dataclass
+class Source:
+    n: int  # 1-based citation number shown to the model
+    report_id: str
+    title: str  # short context line, e.g. "B737-700 | Initial Approach | Part 121 | 2018"
+    text: str
+
+
+
+@dataclass
+class Answer:
+    text: str
+    abstained: bool
+    sources: list[Source]
+    cited: list[int] = field(default_factory=list)
+    invalid_citations: list[int] = field(default_factory=list)
+    top_score: float | None = None
+
+
+
+    @property
+    def cited_report_ids(self) -> list[str]:
+        by_n = {s.n: s.report_id for s in self.sources}
+        out: list[str] = []
+        for n in self.cited:
+            if by_n[n] not in out:
+                out.append(by_n[n])
+        return out
