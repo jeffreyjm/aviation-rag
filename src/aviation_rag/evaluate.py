@@ -25,10 +25,15 @@ import json
 import random
 import re
 from collections import Counter
+from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
+
+from .chunk import split_sentences
+from .generate import Answer
 from .index import tokenize
+from .models import NLI
 from .retrieve import Retriever
 
 
@@ -220,3 +225,52 @@ def evaluate_abstention(in_scores: list[float], ood: list[dict], ood_scores: lis
         "score_medians": {"in_domain": float(np.median(in_scores)), **{g: float(np.median(s)) for g, s in groups.items()}},
     }
     return res
+
+
+
+@dataclass
+class GoldItem:
+    query: str
+    relevant: set[str]
+    answerable: bool
+
+
+
+def evaluate_answers(answers: list[tuple[GoldItem, Answer]], nli: NLI | None = None, entail_threshold: float = 0.5) -> dict:
+    ans_items = [(g, a) for g, a in answers if g.answerable]
+    unans_items = [(g, a) for g, a in answers if not g.answerable]
+    out: dict = {
+        "abstain_on_out_of_scope": float(np.mean([a.abstained for _, a in unans_items])) if unans_items else None,
+        "answered_when_in_domain": float(np.mean([not a.abstained for _, a in ans_items])) if ans_items else None,
+    }
+    answered = [(g, a) for g, a in ans_items if not a.abstained]
+    if answered:
+        out["citation_validity"] = float(np.mean([(not a.invalid_citations) and bool(a.cited) for _, a in answered]))
+        out["citation_recall"] = float(np.mean([bool(set(a.cited_report_ids) & g.relevant) for g, a in answered]))
+
+    if nli is not None and answered:
+        pairs: list[tuple[str, str]] = []
+        owner: list[int] = []
+        claims: list[str] = []
+        for _, a in answered:
+            by_n = {s.n: s.text for s in a.sources}
+            for sent in split_sentences(a.text):
+                nums = [n for n in map(int, _CITE.findall(sent)) if n in by_n]
+                claim = _CITE.sub("", sent).strip()
+                if not (claim and nums):
+                    continue
+                for n in nums:
+                    pairs.append((by_n[n], claim))
+                    owner.append(len(claims))
+                claims.append(claim)
+        if claims:
+            probs = nli.entailment_prob([p for p, _ in pairs], [c for _, c in pairs])
+            best = np.zeros(len(claims))
+            for o, pr in zip(owner, probs):
+                best[o] = max(best[o], pr)
+            out["groundedness_sentence_level"] = float(np.mean(best >= entail_threshold))
+            out["n_claims_checked"] = len(claims)
+            out["ungrounded_examples"] = [
+                {"claim": c, "entail_prob": round(float(x), 3)} for c, x in zip(claims, best) if x < entail_threshold
+            ][:5]
+    return out

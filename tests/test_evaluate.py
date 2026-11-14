@@ -1,6 +1,7 @@
 import pytest
 
 from aviation_rag import evaluate as E
+from aviation_rag.generate import Answer, Source
 
 
 def test_rank_metrics():
@@ -45,3 +46,15 @@ def test_abstention_split_is_heldout():
     assert res["auroc_all"] == 1.0
     assert res["heldout"]["n_in_domain"] == 3 and res["heldout"]["n_out_of_scope"] == 4
     assert set(res["auroc_by_group"]) == {"near_domain", "far_domain"}
+
+
+
+def test_answer_metrics_without_nli():
+    a_ok = Answer("x [1]", False, [Source(1, "r1", "t", "s")], [1])
+    a_abs = Answer("no", True, [])
+    r = E.evaluate_answers([
+        (E.GoldItem("q1", {"r1"}, True), a_ok), (E.GoldItem("q2", {"zz"}, True), a_ok),
+        (E.GoldItem("q3", set(), False), a_abs), (E.GoldItem("q4", set(), False), a_ok),
+    ])
+    assert r["abstain_on_out_of_scope"] == 0.5 and r["answered_when_in_domain"] == 1.0
+    assert r["citation_recall"] == 0.5 and r["citation_validity"] == 1.0
