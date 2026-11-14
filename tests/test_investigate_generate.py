@@ -6,7 +6,7 @@ from aviation_rag.generate import (
     ABSTAIN_TEXT, INSUFFICIENT, SYSTEM_PROMPTS, AnthropicGenerator, ExtractiveGenerator, Source,
     answer, strip_invalid, validate_citations,
 )
-from aviation_rag.investigate import aggregate_factors, base_rates
+from aviation_rag.investigate import aggregate_factors, base_rates, investigate, render
 from conftest import FakeReranker
 
 
@@ -72,3 +72,25 @@ def test_aggregate_factors_counts_and_lift(index):
     rows = aggregate_factors(recs, rates)["primary_problem"]
     assert rows[0].label == "Aircraft" and rows[0].count == 2 and rows[0].share == 1.0
     assert rows[0].base_rate == pytest.approx(2 / 5) and rows[0].lift == pytest.approx(1.0 / 0.4)
+
+
+
+def test_investigate_end_to_end_and_filters(retriever):
+    gen = FakeGen("Precedent describes a stuck lever [1].")
+    inv = investigate("thrust lever stuck on landing and engine did not respond", retriever, gen, k=3)
+    assert inv.precedents[0].report_id == "1" and not inv.draft.abstained
+    assert inv.factors["primary_problem"][0].label in {"Aircraft", "Human Factors", "Procedure", "Airport"}
+    task, sources = gen.calls[0]
+    assert task == "investigate" and sources[0].text.startswith("Crew reported a stuck thrust lever")  # synopsis included
+
+    filtered = investigate("altitude setting error", retriever, gen, k=3, filters={"phase": "Taxi"})
+    assert {p.report_id for p in filtered.precedents} == {"4"}
+    assert any("matched the filters" in c for c in filtered.caveats)
+    assert "PRECEDENTS" in render(inv) and "NOTE:" in render(inv)
+
+
+
+def test_investigate_abstains_on_weak_evidence_without_calling_generator(retriever):
+    gen = FakeGen("x [1]")
+    inv = investigate("completely unrelated cooking text", retriever, gen, k=3, abstain_below=99.0)
+    assert inv.draft.abstained and gen.calls == [] and not any(inv.factors.values())
