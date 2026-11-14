@@ -24,6 +24,7 @@ from __future__ import annotations
 import json
 import random
 import re
+from collections import Counter
 from pathlib import Path
 
 import numpy as np
@@ -113,3 +114,81 @@ def run_modes(retriever: Retriever, queries: list[dict], variants: dict[str, tup
             rows.append(([h.report_id for h in hits], hits[0].components.get("rerank") if hits else None))
         out[name] = rows
     return out
+
+
+
+def _neighbors(ranked: list[str], own_id: str, k: int) -> list[str]:
+    return [i for i in ranked if i != own_id][:k]
+
+
+
+def _share_anomaly(a: dict, b: dict) -> bool:
+    return bool(set(a["anomaly"]) & set(b["anomaly"]))
+
+
+
+def random_pair_anomaly_rate(reports: dict[str, dict], n_pairs: int = 50000, seed: int = 0) -> float:
+    rng = random.Random(seed)
+    recs = list(reports.values())
+    hits = sum(_share_anomaly(*rng.sample(recs, 2)) for _ in range(n_pairs))
+    return hits / n_pairs
+
+
+
+def evaluate_retrieval(retriever: Retriever, queries: list[dict], runs: dict, k_neighbors: int = 5) -> dict:
+    reports = retriever.index.reports
+    pp_counts = Counter(r["primary_problem"] for r in reports.values() if r["primary_problem"])
+    total_pp = sum(pp_counts.values())
+    pp_rate = {c: v / total_pp for c, v in pp_counts.items()}
+    majority = max(pp_rate, key=pp_rate.get)
+    anomaly_base = random_pair_anomaly_rate(reports)
+
+    labelled = [i for i, r in enumerate(queries) if r["primary_problem"] not in ("", "Ambiguous")]
+    report: dict = {
+        "n_queries": len(queries),
+        "n_labelled": len(labelled),
+        "synopsis_overlap": synopsis_overlap(queries),
+        "baselines": {
+            "random_neighbour_primary_problem_precision": float(np.mean([pp_rate[queries[i]["primary_problem"]] for i in labelled])),
+            "majority_class": majority,
+            "majority_class_accuracy": float(np.mean([queries[i]["primary_problem"] == majority for i in labelled])),
+            "random_pair_anomaly_overlap": anomaly_base,
+        },
+        "modes": {},
+    }
+    for name, rows in runs.items():
+        per = {"recall@1": [], "recall@5": [], "recall@10": [], "mrr": []}
+        misses = []
+        for q, (ranked, _) in zip(queries, rows):
+            rel = {q["id"]}
+            per["recall@1"].append(recall_at_k(ranked, rel, 1))
+            per["recall@5"].append(recall_at_k(ranked, rel, 5))
+            per["recall@10"].append(recall_at_k(ranked, rel, 10))
+            per["mrr"].append(reciprocal_rank(ranked, rel))
+            if q["id"] not in ranked[:10] and len(misses) < 5:
+                misses.append({"id": q["id"], "synopsis": q["synopsis"], "top3": ranked[:3]})
+
+        prec, anom, correct = [], [], []
+        for i in labelled:
+            q, (ranked, _) = queries[i], runs[name][i]
+            nb = _neighbors(ranked, q["id"], k_neighbors)
+            if not nb:
+                prec.append(0.0)
+                correct.append(0.0)
+                continue
+            labs = [reports[j]["primary_problem"] for j in nb]
+            prec.append(np.mean([l == q["primary_problem"] for l in labs]))
+            vote = Counter(l for l in labs if l)
+            correct.append(float(bool(vote) and vote.most_common(1)[0][0] == q["primary_problem"]))
+        for q, (ranked, _) in zip(queries, rows):
+            nb = _neighbors(ranked, q["id"], k_neighbors)
+            anom.append(np.mean([_share_anomaly(q, reports[j]) for j in nb]) if nb else 0.0)
+
+        report["modes"][name] = {
+            **{m: _summ(v) for m, v in per.items()},
+            "primary_problem_precision@5": _summ(prec),
+            "primary_problem_vote_accuracy": _summ(correct),
+            "anomaly_overlap@5": _summ(anom),
+            "misses@10": misses,
+        }
+    return report
