@@ -13,3 +13,10 @@ def test_rank_metrics():
 def test_auroc_and_threshold():
     assert E.auroc([3, 4], [1, 2]) == 1.0 and E.auroc([1], [1]) == 0.5
     assert 2 < E.best_threshold([5, 6, 7], [0, 1, 2]) <= 5
+
+
+
+def test_sample_queries_deterministic(index):
+    a = [q["id"] for q in E.sample_queries(index.reports, 3, seed=1)]
+    assert a == [q["id"] for q in E.sample_queries(index.reports, 3, seed=1)]
+    assert len(set(a)) == 3

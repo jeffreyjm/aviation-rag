@@ -20,7 +20,11 @@ analyst-written *synopsis* that the index never sees. So:
 """
 
 from __future__ import annotations
+
+import json
+import random
 import re
+from pathlib import Path
 
 import numpy as np
 
@@ -69,3 +73,16 @@ def best_threshold(pos, neg) -> float:
         if bacc > best:
             best_t, best = t, float(bacc)
     return float(best_t)
+
+
+
+def sample_queries(reports: dict[str, dict], n: int, seed: int = 0) -> list[dict]:
+    ids = sorted(reports)
+    random.Random(seed).shuffle(ids)
+    return [reports[i] for i in ids[:n]]
+
+
+
+def load_ood(path: Path) -> list[dict]:
+    with path.open() as f:
+        return [json.loads(line) for line in f if line.strip()]
