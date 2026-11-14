@@ -27,6 +27,8 @@ import re
 from pathlib import Path
 
 import numpy as np
+from .index import tokenize
+from .retrieve import Retriever
 
 
 _CITE = re.compile(r"\[(\d+)\]")
@@ -86,3 +88,28 @@ def sample_queries(reports: dict[str, dict], n: int, seed: int = 0) -> list[dict
 def load_ood(path: Path) -> list[dict]:
     with path.open() as f:
         return [json.loads(line) for line in f if line.strip()]
+
+
+
+def synopsis_overlap(queries: list[dict]) -> float:
+    """Mean share of synopsis content words that also occur in the report's own narrative."""
+    vals = []
+    for r in queries:
+        q = set(tokenize(r["synopsis"]))
+        if q:
+            vals.append(len(q & set(tokenize(r["narrative"] + " " + r["narrative2"]))) / len(q))
+    return float(np.mean(vals))
+
+
+
+def run_modes(retriever: Retriever, queries: list[dict], variants: dict[str, tuple[str, bool]], k: int = 11) -> dict:
+    """variants: name -> (mode, use_phase_filter). Returns name -> [(ranked_ids, top_rerank_score)]."""
+    out: dict[str, list] = {}
+    for name, (mode, use_phase) in variants.items():
+        rows = []
+        for r in queries:
+            filt = {"phase": r["phase"]} if use_phase and r.get("phase") else None
+            hits = retriever.search(r["synopsis"], mode=mode, k=k, filters=filt)
+            rows.append(([h.report_id for h in hits], hits[0].components.get("rerank") if hits else None))
+        out[name] = rows
+    return out
