@@ -192,3 +192,31 @@ def evaluate_retrieval(retriever: Retriever, queries: list[dict], runs: dict, k_
             "misses@10": misses,
         }
     return report
+
+
+
+def evaluate_abstention(in_scores: list[float], ood: list[dict], ood_scores: list[float]) -> dict:
+    groups: dict[str, list[float]] = {}
+    for o, s in zip(ood, ood_scores):
+        groups.setdefault(o["group"], []).append(s)
+
+    def split(xs):  # even positions calibrate, odd positions test
+        return xs[0::2], xs[1::2]
+
+    in_cal, in_test = split(in_scores)
+    out_all = list(ood_scores)
+    out_cal, out_test = split(out_all)
+    t = best_threshold(in_cal, out_cal)
+    res = {
+        "auroc_all": auroc(in_scores, out_all),
+        "auroc_by_group": {g: auroc(in_scores, s) for g, s in groups.items()},
+        "threshold_calibrated_on_half": t,
+        "heldout": {
+            "in_domain_kept": float(np.mean([s >= t for s in in_test])),
+            "out_of_scope_rejected": float(np.mean([s < t for s in out_test])),
+            "n_in_domain": len(in_test),
+            "n_out_of_scope": len(out_test),
+        },
+        "score_medians": {"in_domain": float(np.median(in_scores)), **{g: float(np.median(s)) for g, s in groups.items()}},
+    }
+    return res

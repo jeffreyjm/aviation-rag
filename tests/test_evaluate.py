@@ -36,3 +36,12 @@ def test_run_modes_and_precedent_metrics(retriever, index):
     # filtering on the query's own phase can only shrink the candidate pool to same-phase reports
     for q, (ranked, _) in zip(queries, runs["h+phase"]):
         assert all(retriever.index.reports[i]["phase"] == q["phase"] for i in ranked)
+
+
+
+def test_abstention_split_is_heldout():
+    ood = [{"query": str(i), "group": "near_domain" if i % 2 else "far_domain"} for i in range(8)]
+    res = E.evaluate_abstention([10, 11, 12, 13, 14, 15], ood, [0, 1, 2, 3, 4, 5, 6, 7])
+    assert res["auroc_all"] == 1.0
+    assert res["heldout"]["n_in_domain"] == 3 and res["heldout"]["n_out_of_scope"] == 4
+    assert set(res["auroc_by_group"]) == {"near_domain", "far_domain"}
