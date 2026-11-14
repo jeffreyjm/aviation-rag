@@ -33,3 +33,26 @@ def _known_item(res: dict) -> list[str]:
         lines.append(f"| {name} | " + " | ".join(_fmt(m[c]) for c in KI_COLS) + " |")
     lines += ["", "Cells are mean [95% bootstrap CI over queries]. The target is the single report the synopsis was written for.", ""]
     return lines
+
+
+
+def _precedent(res: dict) -> list[str]:
+    r = res["retrieval"]
+    b = r["baselines"]
+    lines = [
+        f"### Precedent quality (top-5 neighbours excluding the query's own report; n={r['n_labelled']} labelled queries)",
+        "",
+        "| mode | " + " | ".join(t for _, t in PREC_COLS) + " |",
+        "|---|" + "---|" * len(PREC_COLS),
+    ]
+    for name, m in r["modes"].items():
+        lines.append(f"| {name} | " + " | ".join(_fmt(m[k]) for k, _ in PREC_COLS) + " |")
+    lines += [
+        "",
+        "Baselines: random neighbours share the primary problem "
+        f"{b['random_neighbour_primary_problem_precision']:.3f} of the time; always predicting "
+        f"'{b['majority_class']}' is right {b['majority_class_accuracy']:.3f} of the time; "
+        f"two random reports share an anomaly category {b['random_pair_anomaly_overlap']:.3f} of the time.",
+        "",
+    ]
+    return lines
