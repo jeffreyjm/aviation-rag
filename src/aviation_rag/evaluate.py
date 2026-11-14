@@ -52,3 +52,20 @@ def bootstrap_ci(values, n_boot: int = 2000, seed: int = 0) -> tuple[float, floa
 
 def _summ(values) -> dict:
     return {"mean": float(np.mean(values)), "ci95": bootstrap_ci(values)}
+
+
+
+def auroc(pos, neg) -> float:
+    p, n = np.asarray(pos), np.asarray(neg)
+    return float(((p[:, None] > n[None, :]).sum() + 0.5 * (p[:, None] == n[None, :]).sum()) / (len(p) * len(n)))
+
+
+
+def best_threshold(pos, neg) -> float:
+    """Threshold maximising balanced accuracy (in-domain >= t, out-of-scope < t)."""
+    best_t, best = None, -1.0
+    for t in sorted(set(pos) | set(neg)):
+        bacc = (np.mean([s >= t for s in pos]) + np.mean([s < t for s in neg])) / 2
+        if bacc > best:
+            best_t, best = t, float(bacc)
+    return float(best_t)
