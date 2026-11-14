@@ -22,6 +22,7 @@ analyst-written *synopsis* that the index never sees. So:
 from __future__ import annotations
 
 import json
+import math
 import random
 import re
 from collections import Counter
@@ -34,16 +35,15 @@ from .chunk import split_sentences
 from .generate import Answer
 from .index import tokenize
 from .models import NLI
-from .retrieve import Retriever
-
+from .retrieve import MODES, Retriever
 
 _CITE = re.compile(r"\[(\d+)\]")
 
+# ------------------------------------------------------------------ metrics
 
 
 def recall_at_k(ranked: list[str], relevant: set[str], k: int) -> float:
     return len(set(ranked[:k]) & relevant) / len(relevant) if relevant else 0.0
-
 
 
 def reciprocal_rank(ranked: list[str], relevant: set[str]) -> float:
@@ -53,7 +53,6 @@ def reciprocal_rank(ranked: list[str], relevant: set[str]) -> float:
     return 0.0
 
 
-
 def bootstrap_ci(values, n_boot: int = 2000, seed: int = 0) -> tuple[float, float]:
     rng = np.random.default_rng(seed)
     arr = np.asarray(values, dtype=float)
@@ -61,16 +60,13 @@ def bootstrap_ci(values, n_boot: int = 2000, seed: int = 0) -> tuple[float, floa
     return float(np.percentile(means, 2.5)), float(np.percentile(means, 97.5))
 
 
-
 def _summ(values) -> dict:
     return {"mean": float(np.mean(values)), "ci95": bootstrap_ci(values)}
-
 
 
 def auroc(pos, neg) -> float:
     p, n = np.asarray(pos), np.asarray(neg)
     return float(((p[:, None] > n[None, :]).sum() + 0.5 * (p[:, None] == n[None, :]).sum()) / (len(p) * len(n)))
-
 
 
 def best_threshold(pos, neg) -> float:
@@ -83,6 +79,8 @@ def best_threshold(pos, neg) -> float:
     return float(best_t)
 
 
+# ------------------------------------------------------------------ queries
+
 
 def sample_queries(reports: dict[str, dict], n: int, seed: int = 0) -> list[dict]:
     ids = sorted(reports)
@@ -90,11 +88,9 @@ def sample_queries(reports: dict[str, dict], n: int, seed: int = 0) -> list[dict
     return [reports[i] for i in ids[:n]]
 
 
-
 def load_ood(path: Path) -> list[dict]:
     with path.open() as f:
         return [json.loads(line) for line in f if line.strip()]
-
 
 
 def synopsis_overlap(queries: list[dict]) -> float:
@@ -106,6 +102,8 @@ def synopsis_overlap(queries: list[dict]) -> float:
             vals.append(len(q & set(tokenize(r["narrative"] + " " + r["narrative2"]))) / len(q))
     return float(np.mean(vals))
 
+
+# ------------------------------------------------------------------ retrieval + precedent quality
 
 
 def run_modes(retriever: Retriever, queries: list[dict], variants: dict[str, tuple[str, bool]], k: int = 11) -> dict:
@@ -121,15 +119,12 @@ def run_modes(retriever: Retriever, queries: list[dict], variants: dict[str, tup
     return out
 
 
-
 def _neighbors(ranked: list[str], own_id: str, k: int) -> list[str]:
     return [i for i in ranked if i != own_id][:k]
 
 
-
 def _share_anomaly(a: dict, b: dict) -> bool:
     return bool(set(a["anomaly"]) & set(b["anomaly"]))
-
 
 
 def random_pair_anomaly_rate(reports: dict[str, dict], n_pairs: int = 50000, seed: int = 0) -> float:
@@ -137,7 +132,6 @@ def random_pair_anomaly_rate(reports: dict[str, dict], n_pairs: int = 50000, see
     recs = list(reports.values())
     hits = sum(_share_anomaly(*rng.sample(recs, 2)) for _ in range(n_pairs))
     return hits / n_pairs
-
 
 
 def evaluate_retrieval(retriever: Retriever, queries: list[dict], runs: dict, k_neighbors: int = 5) -> dict:
@@ -199,6 +193,8 @@ def evaluate_retrieval(retriever: Retriever, queries: list[dict], runs: dict, k_
     return report
 
 
+# ------------------------------------------------------------------ abstention
+
 
 def evaluate_abstention(in_scores: list[float], ood: list[dict], ood_scores: list[float]) -> dict:
     groups: dict[str, list[float]] = {}
@@ -227,13 +223,14 @@ def evaluate_abstention(in_scores: list[float], ood: list[dict], ood_scores: lis
     return res
 
 
+# ------------------------------------------------------------------ answers
+
 
 @dataclass
 class GoldItem:
     query: str
     relevant: set[str]
     answerable: bool
-
 
 
 def evaluate_answers(answers: list[tuple[GoldItem, Answer]], nli: NLI | None = None, entail_threshold: float = 0.5) -> dict:
@@ -249,19 +246,24 @@ def evaluate_answers(answers: list[tuple[GoldItem, Answer]], nli: NLI | None = N
         out["citation_recall"] = float(np.mean([bool(set(a.cited_report_ids) & g.relevant) for g, a in answered]))
 
     if nli is not None and answered:
+        # Small NLI models call a claim "neutral" when the premise holds the claim plus other
+        # text, so score each claim against single source sentences and 2-sentence windows
+        # and take the best (SummaC-style) rather than against the whole excerpt.
         pairs: list[tuple[str, str]] = []
         owner: list[int] = []
         claims: list[str] = []
         for _, a in answered:
             by_n = {s.n: s.text for s in a.sources}
-            for sent in split_sentences(a.text):
+            for sent in split_sentences(a.text, keep_citations=True):
                 nums = [n for n in map(int, _CITE.findall(sent)) if n in by_n]
                 claim = _CITE.sub("", sent).strip()
                 if not (claim and nums):
                     continue
                 for n in nums:
-                    pairs.append((by_n[n], claim))
-                    owner.append(len(claims))
+                    sents = split_sentences(by_n[n])
+                    for w in sents + [" ".join(sents[i : i + 2]) for i in range(len(sents) - 1)]:
+                        pairs.append((w, claim))
+                        owner.append(len(claims))
                 claims.append(claim)
         if claims:
             probs = nli.entailment_prob([p for p, _ in pairs], [c for _, c in pairs])
@@ -274,3 +276,12 @@ def evaluate_answers(answers: list[tuple[GoldItem, Answer]], nli: NLI | None = N
                 {"claim": c, "entail_prob": round(float(x), 3)} for c, x in zip(claims, best) if x < entail_threshold
             ][:5]
     return out
+
+
+DEFAULT_VARIANTS = {
+    "bm25": ("bm25", False),
+    "dense": ("dense", False),
+    "hybrid": ("hybrid", False),
+    "hybrid+rerank": ("hybrid+rerank", False),
+    "hybrid+rerank + phase filter": ("hybrid+rerank", True),
+}
