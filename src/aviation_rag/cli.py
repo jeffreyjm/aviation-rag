@@ -51,3 +51,27 @@ def cmd_index(args):
     idx = Index.build(load_reports(), Embedder())
     idx.save(config.INDEX_DIR)
     print(f"indexed {idx.meta['n_reports']} reports / {idx.meta['n_chunks']} chunks -> {config.INDEX_DIR}")
+
+
+
+def cmd_ask(args):
+    from .generate import answer
+
+    r = _retriever()
+    gen = _generator(args.generator, r)
+    res = answer(args.question, r, gen, k=args.k, abstain_below=args.abstain_below, filters=_filters(args))
+    print(res.text, "\n")
+    if res.top_score is not None:
+        print(f"(top rerank score {res.top_score:.2f}; generator {type(gen).__name__})\n")
+    for s in res.sources:
+        print(f" {'*' if s.n in res.cited else ' '}[{s.n}] ASRS {s.report_id}  {s.title}")
+
+
+
+def cmd_investigate(args):
+    from .investigate import investigate, render
+
+    r = _retriever()
+    gen = _generator(args.generator, r)
+    inv = investigate(args.description, r, gen, k=args.k, filters=_filters(args), abstain_below=args.abstain_below)
+    print(render(inv))
