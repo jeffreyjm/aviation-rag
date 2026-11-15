@@ -1,0 +1,30 @@
+{"query": "A freight train engineer reported passing a red signal near the yard throat because of a signal display glare during sunrise.", "group": "near_domain"}
+{"query": "A container ship pilot reported the vessel lost steering while transiting a narrow channel and nearly grounded.", "group": "near_domain"}
+{"query": "A truck driver reported falling asleep at the wheel on the interstate after a double shift and drifting onto the rumble strip.", "group": "near_domain"}
+{"query": "An ICU nurse reported giving the wrong dose of a blood thinner because two vials looked alike on the medication cart.", "group": "near_domain"}
+{"query": "A refinery operator reported a pressure relief valve lifted unexpectedly during a unit restart and flaring began.", "group": "near_domain"}
+{"query": "A subway operator reported a door interlock fault that let the train depart with a door open at a platform.", "group": "near_domain"}
+{"query": "A fishing vessel captain reported taking on water after a hatch was left unsecured in rough seas.", "group": "near_domain"}
+{"query": "A construction crane operator reported the load swinging toward workers when a gust of wind arrived during a lift.", "group": "near_domain"}
+{"query": "A pharmacist reported dispensing the wrong strength of a tablet because the labels on two bottles were nearly identical.", "group": "near_domain"}
+{"query": "A nuclear plant control room operator reported a spurious coolant pump trip during a routine surveillance test.", "group": "near_domain"}
+{"query": "A ferry captain reported a near collision with a sailboat crossing the channel in fog near the terminal.", "group": "near_domain"}
+{"query": "A coal mine supervisor reported a roof fall near the working face after bolting was delayed to meet production.", "group": "near_domain"}
+{"query": "A power grid dispatcher reported a transformer overload alarm that was acknowledged late during a heat wave.", "group": "near_domain"}
+{"query": "A bus driver reported a brake fade on a long mountain descent after the retarder stopped working.", "group": "near_domain"}
+{"query": "A surgeon reported a retained sponge discovered during closing after the count was interrupted by a phone call.", "group": "near_domain"}
+{"query": "A tugboat deckhand reported a tow line parting under load and snapping across the deck.", "group": "near_domain"}
+{"query": "A warehouse forklift driver reported a pallet falling from a high rack because the forks were not fully engaged.", "group": "near_domain"}
+{"query": "A railroad dispatcher reported giving two trains authority onto the same single track section after a miscommunication.", "group": "near_domain"}
+{"query": "A satellite ground controller reported sending a thruster burn command to the wrong spacecraft during a shift handover.", "group": "near_domain"}
+{"query": "A chemical plant technician reported opening the wrong valve during a transfer because the tag was missing.", "group": "near_domain"}
+{"query": "The sourdough starter failed to rise overnight because the kitchen was too cold.", "group": "far_domain"}
+{"query": "The striker scored twice in the second half and the team won the championship match.", "group": "far_domain"}
+{"query": "A freelance accountant asked how to deduct a home office on her annual tax return.", "group": "far_domain"}
+{"query": "The novel follows a prince who avenges his father in a castle in Denmark.", "group": "far_domain"}
+{"query": "My guitar string snapped while I was tuning it and I need to know how to restring it.", "group": "far_domain"}
+{"query": "The mortgage rate dropped after the central bank cut its benchmark interest rate.", "group": "far_domain"}
+{"query": "How do I make a vegetarian lasagna that holds together when it is cut?", "group": "far_domain"}
+{"query": "The museum is hosting an exhibit of impressionist paintings through the end of the month.", "group": "far_domain"}
+{"query": "A beginner gardener wants to know when to plant tomato seedlings outdoors.", "group": "far_domain"}
+{"query": "The film critic praised the director for the long unbroken tracking shot in the opening scene.", "group": "far_domain"}
