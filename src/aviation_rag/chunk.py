@@ -17,8 +17,9 @@ _SPLIT = re.compile(r"(?<=[.!?])\s+(?=[A-Z0-9\[(\"'])")
 _MASK = "․"  # one-dot leader: stands in for protected periods
 
 
+_SPLIT_CITED = re.compile(r"(?<=[.!?\]])\s+(?=[A-Z0-9\[(\"'])")  # ']' may end a cited sentence
 _CITE_AFTER_PERIOD = re.compile(r"(?<=[.!?])\s+(?=\[\d+\])")
-_GLUE = "\u00a0"  # non-breaking space keeps the marker attached
+_GLUE = "\u2063"  # invisible separator; unlike NBSP it is not matched by \s
 
 
 def split_sentences(text: str, keep_citations: bool = False) -> list[str]:
@@ -27,8 +28,9 @@ def split_sentences(text: str, keep_citations: bool = False) -> list[str]:
     masked = _ABBREV.sub(lambda m: m.group(0)[:-1] + _MASK, text)
     if keep_citations:
         masked = _CITE_AFTER_PERIOD.sub(_GLUE, masked)
-    parts = _SPLIT.split(masked.strip())
+    parts = (_SPLIT_CITED if keep_citations else _SPLIT).split(masked.strip())
     return [p.replace(_MASK, ".").replace(_GLUE, " ").strip() for p in parts if p.strip()]
+
 
 def _hard_wrap(s: str, limit: int) -> list[str]:
     """Break an over-long run-on sentence at word boundaries."""
