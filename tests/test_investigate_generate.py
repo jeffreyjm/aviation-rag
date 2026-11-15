@@ -11,23 +11,17 @@ from conftest import FakeReranker
 
 
 class FakeGen:
-
-
-
     def __init__(self, text):
         self.text, self.calls = text, []
-
 
     def generate(self, task, question, sources):
         self.calls.append((task, sources))
         return self.text
 
 
-
 def test_validate_and_strip_citations():
     assert validate_citations("A [1]. B [2][7].", 3) == ([1, 2], [7])
     assert strip_invalid("A [1]. B [2][7].", 3) == "A [1]. B [2]."
-
 
 
 def test_answer_validates_and_abstains(retriever):
@@ -37,7 +31,6 @@ def test_answer_validates_and_abstains(retriever):
     gen = FakeGen("never called [1]")
     res = answer("zzz qqq", retriever, gen, k=2, abstain_below=99.0)
     assert res.abstained and res.text == ABSTAIN_TEXT and gen.calls == []
-
 
 
 def test_anthropic_generator_uses_task_specific_prompt():
@@ -58,12 +51,10 @@ def test_anthropic_generator_uses_task_specific_prompt():
     assert "[1] (ASRS 42; B737 | Cruise)" in user and "New event description: A thing happened." in user
 
 
-
 def test_extractive_investigate_lists_precedent_synopses():
     src = [Source(1, "a", "t", "Crew had a stuck lever. More detail."), Source(2, "b", "t", "Altitude bust. Other.")]
     out = ExtractiveGenerator(FakeReranker()).generate("investigate", "q", src)
     assert out == "Crew had a stuck lever. [1] Altitude bust. [2]"
-
 
 
 def test_aggregate_factors_counts_and_lift(index):
@@ -72,7 +63,6 @@ def test_aggregate_factors_counts_and_lift(index):
     rows = aggregate_factors(recs, rates)["primary_problem"]
     assert rows[0].label == "Aircraft" and rows[0].count == 2 and rows[0].share == 1.0
     assert rows[0].base_rate == pytest.approx(2 / 5) and rows[0].lift == pytest.approx(1.0 / 0.4)
-
 
 
 def test_investigate_end_to_end_and_filters(retriever):
@@ -89,8 +79,16 @@ def test_investigate_end_to_end_and_filters(retriever):
     assert "PRECEDENTS" in render(inv) and "NOTE:" in render(inv)
 
 
-
 def test_investigate_abstains_on_weak_evidence_without_calling_generator(retriever):
     gen = FakeGen("x [1]")
     inv = investigate("completely unrelated cooking text", retriever, gen, k=3, abstain_below=99.0)
     assert inv.draft.abstained and gen.calls == [] and not any(inv.factors.values())
+
+
+def test_single_precedent_labels_are_suppressed_when_enough_precedents(retriever):
+    gen = FakeGen("x [1].")
+    inv = investigate("thrust lever stuck altitude taxiway fuel traffic climb", retriever, gen, k=5)
+    assert len(inv.precedents) == 5
+    for rows in inv.factors.values():
+        assert all(r.count >= 2 for r in rows)  # every label here is on 1 report at most, except shared ones
+    assert any("only one precedent" in c for c in inv.caveats)

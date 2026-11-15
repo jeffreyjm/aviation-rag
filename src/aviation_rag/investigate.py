@@ -82,7 +82,7 @@ def base_rates(index: Index) -> dict[str, dict[str, float]]:
 
 
 def aggregate_factors(
-    records: list[dict], rates: dict[str, dict[str, float]], top: int = 4
+    records: list[dict], rates: dict[str, dict[str, float]], top: int = 4, min_count: int = 1
 ) -> dict[str, list[FactorRow]]:
     n = len(records)
     out: dict[str, list[FactorRow]] = {}
@@ -92,6 +92,8 @@ def aggregate_factors(
             c.update(_labels(r, name))
         rows = []
         for lab, cnt in c.most_common():
+            if cnt < min_count:
+                continue
             br = rates[name].get(lab, 0.0)
             rows.append(FactorRow(lab, cnt, cnt / n, br, (cnt / n) / br if br else float("inf")))
         out[name] = rows[:top]
@@ -133,7 +135,10 @@ def investigate(
         factors: dict[str, list[FactorRow]] = {name: [] for name in FACTOR_FIELDS}
     else:
         draft = finalize(generator.generate("investigate", description, sources), sources, top)
-        factors = aggregate_factors(records, rates)
+        min_count = 2 if len(records) >= 4 else 1
+        factors = aggregate_factors(records, rates, min_count=min_count)
+        if min_count > 1:
+            caveats.append("Labels carried by only one precedent are omitted: their lift is too unstable to interpret.")
     return Investigation(description, filters, precedents, factors, draft, top, caveats)
 
 
