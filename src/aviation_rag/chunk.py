@@ -17,12 +17,18 @@ _SPLIT = re.compile(r"(?<=[.!?])\s+(?=[A-Z0-9\[(\"'])")
 _MASK = "․"  # one-dot leader: stands in for protected periods
 
 
+_CITE_AFTER_PERIOD = re.compile(r"(?<=[.!?])\s+(?=\[\d+\])")
+_GLUE = "\u00a0"  # non-breaking space keeps the marker attached
 
-def split_sentences(text: str) -> list[str]:
+
+def split_sentences(text: str, keep_citations: bool = False) -> list[str]:
+    """Split into sentences. With keep_citations=True a marker after the terminal
+    punctuation ("... done. [2]") stays attached to the sentence it supports."""
     masked = _ABBREV.sub(lambda m: m.group(0)[:-1] + _MASK, text)
+    if keep_citations:
+        masked = _CITE_AFTER_PERIOD.sub(_GLUE, masked)
     parts = _SPLIT.split(masked.strip())
-    return [p.replace(_MASK, ".").strip() for p in parts if p.strip()]
-
+    return [p.replace(_MASK, ".").replace(_GLUE, " ").strip() for p in parts if p.strip()]
 
 def _hard_wrap(s: str, limit: int) -> list[str]:
     """Break an over-long run-on sentence at word boundaries."""

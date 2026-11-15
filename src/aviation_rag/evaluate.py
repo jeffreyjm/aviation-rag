@@ -246,9 +246,6 @@ def evaluate_answers(answers: list[tuple[GoldItem, Answer]], nli: NLI | None = N
         out["citation_recall"] = float(np.mean([bool(set(a.cited_report_ids) & g.relevant) for g, a in answered]))
 
     if nli is not None and answered:
-        # Small NLI models call a claim "neutral" when the premise holds the claim plus other
-        # text, so score each claim against single source sentences and 2-sentence windows
-        # and take the best (SummaC-style) rather than against the whole excerpt.
         pairs: list[tuple[str, str]] = []
         owner: list[int] = []
         claims: list[str] = []
@@ -260,10 +257,8 @@ def evaluate_answers(answers: list[tuple[GoldItem, Answer]], nli: NLI | None = N
                 if not (claim and nums):
                     continue
                 for n in nums:
-                    sents = split_sentences(by_n[n])
-                    for w in sents + [" ".join(sents[i : i + 2]) for i in range(len(sents) - 1)]:
-                        pairs.append((w, claim))
-                        owner.append(len(claims))
+                    pairs.append((by_n[n], claim))
+                    owner.append(len(claims))
                 claims.append(claim)
         if claims:
             probs = nli.entailment_prob([p for p, _ in pairs], [c for _, c in pairs])

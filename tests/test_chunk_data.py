@@ -11,7 +11,6 @@ def test_pack_respects_budget_and_overlaps_one_sentence():
     assert chunks[1].startswith(last_of_first)  # one-sentence overlap
 
 
-
 def test_pack_hard_wraps_runon_text_without_punctuation():
     runon = "we were cleared for the approach " * 60  # no sentence boundaries at all
     chunks = pack(runon, budget=200)
@@ -19,17 +18,14 @@ def test_pack_hard_wraps_runon_text_without_punctuation():
     assert " ".join(chunks).split().count("approach") >= 60  # nothing lost
 
 
-
 def test_short_narrative_is_one_chunk(reports):
     assert len(chunk_report(reports[0])) == 1
-
 
 
 def test_second_reporter_is_appended():
     r = dict(narrative="First view.", narrative2="Other view.", id="9", year=2020, aircraft="X", phase="Taxi", far_part="")
     texts = [c.text for c in chunk_report(r)]
     assert any(t.startswith("Second reporter:") for t in texts)
-
 
 
 def test_no_analyst_labels_leak_into_indexed_text(reports):
@@ -50,11 +46,15 @@ def test_no_analyst_labels_leak_into_indexed_text(reports):
             assert c.embed_text == f"[{c.header}] {c.text}"  # nothing else is prepended
 
 
-
 def test_header_is_context_only(reports):
     h = context_header(reports[0])
     assert h == "B737-800 | Landing | Part 121 | 2018"
 
+
+def test_citation_after_period_stays_with_its_sentence():
+    assert split_sentences("First. [1] Second. [2][3] Third [2].", keep_citations=True) == [
+        "First. [1]", "Second. [2][3]", "Third [2].",
+    ]
 
 
 def test_normalise_parses_lists_and_year():
@@ -67,7 +67,6 @@ def test_normalise_parses_lists_and_year():
     assert r["year"] == 2018 and r["month"] == 8
     assert r["anomaly"] == ["A One", "B Two"]
     assert r["narrative"] == "We flew." and r["phase"] == "Cruise"
-
 
 
 def test_normalise_drops_rows_missing_synopsis_or_narrative():
