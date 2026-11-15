@@ -1,15 +1,15 @@
 """Command line: aviation-rag {data,index,ask,investigate,eval}."""
 
 from __future__ import annotations
+
+import argparse
 import json
 import os
 import sys
 
 from . import config
 
-
 FILTER_ARGS = ("phase", "far_part", "operator", "conditions", "aircraft", "year_min", "year_max")
-
 
 
 def _retriever():
@@ -21,10 +21,8 @@ def _retriever():
     return Retriever(Index.load(config.INDEX_DIR))
 
 
-
 def _filters(args) -> dict:
     return {k: getattr(args, k) for k in FILTER_ARGS if getattr(args, k, None) not in (None, "")}
-
 
 
 def _generator(name: str, retriever):
@@ -35,13 +33,11 @@ def _generator(name: str, retriever):
     return AnthropicGenerator() if name == "llm" else ExtractiveGenerator(retriever.reranker)
 
 
-
 def cmd_data(args):
     from .data import build_reports, download
 
     recs = build_reports(download())
     print(f"wrote {len(recs)} reports -> {config.REPORTS_PATH}")
-
 
 
 def cmd_index(args):
@@ -52,7 +48,6 @@ def cmd_index(args):
     idx = Index.build(load_reports(), Embedder())
     idx.save(config.INDEX_DIR)
     print(f"indexed {idx.meta['n_reports']} reports / {idx.meta['n_chunks']} chunks -> {config.INDEX_DIR}")
-
 
 
 def cmd_ask(args):
@@ -68,7 +63,6 @@ def cmd_ask(args):
         print(f" {'*' if s.n in res.cited else ' '}[{s.n}] ASRS {s.report_id}  {s.title}")
 
 
-
 def cmd_investigate(args):
     from .investigate import investigate, render
 
@@ -76,7 +70,6 @@ def cmd_investigate(args):
     gen = _generator(args.generator, r)
     inv = investigate(args.description, r, gen, k=args.k, filters=_filters(args), abstain_below=args.abstain_below)
     print(render(inv))
-
 
 
 def cmd_eval(args):
@@ -133,3 +126,47 @@ def cmd_eval(args):
     md = write_report(results)
     (config.RESULTS_DIR / "results.md").write_text(md)
     print(md)
+
+
+def main(argv=None):
+    p = argparse.ArgumentParser(prog="aviation-rag", description=__doc__)
+    sub = p.add_subparsers(dest="cmd", required=True)
+
+    sub.add_parser("data", help="download ASRS reports and build data/reports.jsonl").set_defaults(fn=cmd_data)
+    sub.add_parser("index", help="chunk + embed reports").set_defaults(fn=cmd_index)
+
+    def common(sp):
+        sp.add_argument("--generator", default="auto", choices=["auto", "llm", "extractive"])
+        sp.add_argument("--abstain-below", type=float, default=None, help="refuse if top rerank score is below this")
+        sp.add_argument("--phase", help='flight phase, e.g. "Initial Approach"')
+        sp.add_argument("--far-part", dest="far_part", help='e.g. "Part 121"')
+        sp.add_argument("--operator", help='e.g. "Air Carrier"')
+        sp.add_argument("--conditions", help="e.g. IMC / VMC")
+        sp.add_argument("--aircraft", help="substring of make/model, e.g. B737")
+        sp.add_argument("--year-min", dest="year_min", type=int)
+        sp.add_argument("--year-max", dest="year_max", type=int)
+
+    a = sub.add_parser("ask", help="ask a question over the reports")
+    a.add_argument("question")
+    a.add_argument("-k", type=int, default=4)
+    common(a)
+    a.set_defaults(fn=cmd_ask)
+
+    i = sub.add_parser("investigate", help="precedents, factors and a cited draft for a new event")
+    i.add_argument("description")
+    i.add_argument("-k", type=int, default=5)
+    common(i)
+    i.set_defaults(fn=cmd_investigate)
+
+    e = sub.add_parser("eval", help="run the evaluation harness")
+    e.add_argument("-n", type=int, default=400, help="number of synopsis queries")
+    e.add_argument("--n-answers", type=int, default=100)
+    e.add_argument("--llm", action="store_true", help="also evaluate the LLM generator (needs ANTHROPIC_API_KEY)")
+    e.set_defaults(fn=cmd_eval)
+
+    args = p.parse_args(argv)
+    args.fn(args)
+
+
+if __name__ == "__main__":
+    main()
