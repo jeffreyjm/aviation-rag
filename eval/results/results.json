@@ -1,0 +1,538 @@
+{
+  "index": {
+    "embed_model": "BAAI/bge-small-en-v1.5",
+    "n_reports": 9068,
+    "n_chunks": 34775
+  },
+  "retrieval": {
+    "n_queries": 400,
+    "n_labelled": 368,
+    "synopsis_overlap": 0.4676470229528099,
+    "baselines": {
+      "random_neighbour_primary_problem_precision": 0.22310837028824831,
+      "majority_class": "Human Factors",
+      "majority_class_accuracy": 0.3804347826086957,
+      "random_pair_anomaly_overlap": 0.39842
+    },
+    "modes": {
+      "bm25": {
+        "recall@1": {
+          "mean": 0.51,
+          "ci95": [
+            0.4625,
+            0.56
+          ]
+        },
+        "recall@5": {
+          "mean": 0.6975,
+          "ci95": [
+            0.6525,
+            0.745
+          ]
+        },
+        "recall@10": {
+          "mean": 0.745,
+          "ci95": [
+            0.7025,
+            0.79
+          ]
+        },
+        "mrr": {
+          "mean": 0.5879446248196247,
+          "ci95": [
+            0.5463089263167389,
+            0.6330059208152958
+          ]
+        },
+        "primary_problem_precision@5": {
+          "mean": 0.42608695652173917,
+          "ci95": [
+            0.3934782608695652,
+            0.4592391304347826
+          ]
+        },
+        "primary_problem_vote_accuracy": {
+          "mean": 0.5244565217391305,
+          "ci95": [
+            0.47275815217391304,
+            0.5760869565217391
+          ]
+        },
+        "anomaly_overlap@5": {
+          "mean": 0.727,
+          "ci95": [
+            0.7,
+            0.754
+          ]
+        },
+        "misses@10": [
+          {
+            "id": "1832527",
+            "synopsis": "EMB-145 First Officer reported cabin altitude was uncontrollable and the flight crew elected to request an immediate descent. The flight continued to destination airport at a reduced altitude.",
+            "top3": [
+              "1030690",
+              "1596036",
+              "1022972"
+            ]
+          },
+          {
+            "id": "1850095",
+            "synopsis": "Air Carrier Ramp Personnel reported Hazmat cargo transported and improperly configured for air transport.",
+            "top3": [
+              "1787634",
+              "1690041",
+              "1157073"
+            ]
+          },
+          {
+            "id": "1704451",
+            "synopsis": "Air carrier pilot reported encountering a challenging approach while dealing with fatigue.",
+            "top3": [
+              "1157073",
+              "1122585",
+              "1127859"
+            ]
+          },
+          {
+            "id": "1360370",
+            "synopsis": "Dash-8 First Officer reported proceeding to an alternate after weather conditions at destination caused delays.",
+            "top3": [
+              "1141818",
+              "1255378",
+              "1031667"
+            ]
+          },
+          {
+            "id": "1680022",
+            "synopsis": "Flight Attendant reported a 'sulfur' type odor during multiple flight legs. Maintenance action at stop over greatly improved the conditions.",
+            "top3": [
+              "1811113",
+              "1827331",
+              "1018181"
+            ]
+          }
+        ]
+      },
+      "dense": {
+        "recall@1": {
+          "mean": 0.3825,
+          "ci95": [
+            0.3375,
+            0.43
+          ]
+        },
+        "recall@5": {
+          "mean": 0.5525,
+          "ci95": [
+            0.505,
+            0.6
+          ]
+        },
+        "recall@10": {
+          "mean": 0.6325,
+          "ci95": [
+            0.5875,
+            0.6775
+          ]
+        },
+        "mrr": {
+          "mean": 0.4582552308802309,
+          "ci95": [
+            0.4146704928751804,
+            0.5010522569444444
+          ]
+        },
+        "primary_problem_precision@5": {
+          "mean": 0.40923913043478266,
+          "ci95": [
+            0.37771739130434784,
+            0.44021739130434784
+          ]
+        },
+        "primary_problem_vote_accuracy": {
+          "mean": 0.4945652173913043,
+          "ci95": [
+            0.44565217391304346,
+            0.5435461956521735
+          ]
+        },
+        "anomaly_overlap@5": {
+          "mean": 0.733,
+          "ci95": [
+            0.7045,
+            0.7615000000000001
+          ]
+        },
+        "misses@10": [
+          {
+            "id": "1832527",
+            "synopsis": "EMB-145 First Officer reported cabin altitude was uncontrollable and the flight crew elected to request an immediate descent. The flight continued to destination airport at a reduced altitude.",
+            "top3": [
+              "1028402",
+              "1290910",
+              "1000270"
+            ]
+          },
+          {
+            "id": "1235346",
+            "synopsis": "IND TRACON issued a go-around to an air carrier at 3;000 FT on approach to IND Runway 23L but the flight crew missed the command because of a nonstandard phraseology.",
+            "top3": [
+              "1479383",
+              "1423350",
+              "1063783"
+            ]
+          },
+          {
+            "id": "1622523",
+            "synopsis": "B777 First Officer reported that the revisions sent to the aircraft resulted in issues with entering another FIR.",
+            "top3": [
+              "1579971",
+              "1340313",
+              "1048922"
+            ]
+          },
+          {
+            "id": "1850095",
+            "synopsis": "Air Carrier Ramp Personnel reported Hazmat cargo transported and improperly configured for air transport.",
+            "top3": [
+              "1152019",
+              "1787634",
+              "1125578"
+            ]
+          },
+          {
+            "id": "1201242",
+            "synopsis": "C152 Flight Instructor reports an airborne conflict with another aircraft requiring evasive action. The reporter had just been cleared for the GPS 4 approach to Runway 4 at ACY and was out of 2;000 feet for 1;700 feet. ATC apparently saw the other aircraft but did not provide a warning.",
+            "top3": [
+              "1742777",
+              "1291614",
+              "1702750"
+            ]
+          }
+        ]
+      },
+      "hybrid": {
+        "recall@1": {
+          "mean": 0.5,
+          "ci95": [
+            0.4525,
+            0.5525
+          ]
+        },
+        "recall@5": {
+          "mean": 0.695,
+          "ci95": [
+            0.6475,
+            0.74
+          ]
+        },
+        "recall@10": {
+          "mean": 0.75,
+          "ci95": [
+            0.7075,
+            0.7925
+          ]
+        },
+        "mrr": {
+          "mean": 0.5801411435786435,
+          "ci95": [
+            0.5376129577020202,
+            0.6248088180916306
+          ]
+        },
+        "primary_problem_precision@5": {
+          "mean": 0.4315217391304348,
+          "ci95": [
+            0.4010869565217392,
+            0.46195652173913043
+          ]
+        },
+        "primary_problem_vote_accuracy": {
+          "mean": 0.5489130434782609,
+          "ci95": [
+            0.5,
+            0.6005434782608695
+          ]
+        },
+        "anomaly_overlap@5": {
+          "mean": 0.752,
+          "ci95": [
+            0.7244999999999999,
+            0.7785
+          ]
+        },
+        "misses@10": [
+          {
+            "id": "1832527",
+            "synopsis": "EMB-145 First Officer reported cabin altitude was uncontrollable and the flight crew elected to request an immediate descent. The flight continued to destination airport at a reduced altitude.",
+            "top3": [
+              "1596036",
+              "1030690",
+              "1011257"
+            ]
+          },
+          {
+            "id": "1850095",
+            "synopsis": "Air Carrier Ramp Personnel reported Hazmat cargo transported and improperly configured for air transport.",
+            "top3": [
+              "1787634",
+              "1587637",
+              "1695619"
+            ]
+          },
+          {
+            "id": "1201242",
+            "synopsis": "C152 Flight Instructor reports an airborne conflict with another aircraft requiring evasive action. The reporter had just been cleared for the GPS 4 approach to Runway 4 at ACY and was out of 2;000 feet for 1;700 feet. ATC apparently saw the other aircraft but did not provide a warning.",
+            "top3": [
+              "1291614",
+              "1712875",
+              "1699764"
+            ]
+          },
+          {
+            "id": "1839362",
+            "synopsis": "First Officer reported ADC (Air Data Computer) #1 failure affected the cabin pressurization system; requiring a descent and a switch to #2 ADC; which restored cabin pressure control.",
+            "top3": [
+              "1632592",
+              "1345274",
+              "1302933"
+            ]
+          },
+          {
+            "id": "1704451",
+            "synopsis": "Air carrier pilot reported encountering a challenging approach while dealing with fatigue.",
+            "top3": [
+              "1816970",
+              "1137763",
+              "1253342"
+            ]
+          }
+        ]
+      },
+      "hybrid+rerank": {
+        "recall@1": {
+          "mean": 0.5275,
+          "ci95": [
+            0.4775,
+            0.575
+          ]
+        },
+        "recall@5": {
+          "mean": 0.72,
+          "ci95": [
+            0.6749375000000001,
+            0.7625
+          ]
+        },
+        "recall@10": {
+          "mean": 0.7725,
+          "ci95": [
+            0.73,
+            0.8125
+          ]
+        },
+        "mrr": {
+          "mean": 0.6088218795093795,
+          "ci95": [
+            0.5657541057900433,
+            0.6503753990800866
+          ]
+        },
+        "primary_problem_precision@5": {
+          "mean": 0.42717391304347824,
+          "ci95": [
+            0.3956521739130435,
+            0.4581657608695652
+          ]
+        },
+        "primary_problem_vote_accuracy": {
+          "mean": 0.5461956521739131,
+          "ci95": [
+            0.49728260869565216,
+            0.595108695652174
+          ]
+        },
+        "anomaly_overlap@5": {
+          "mean": 0.7394999999999999,
+          "ci95": [
+            0.7115,
+            0.768
+          ]
+        },
+        "misses@10": [
+          {
+            "id": "1313442",
+            "synopsis": "Local Controller reported that an aircraft departed at the same time as an aircraft was landing on a parallel runway in the opposite direction. Contributing was the landing aircraft making an unanticipated short approach and the departing aircraft not acknowledging their takeoff clearance being cancelled.",
+            "top3": [
+              "1445533",
+              "1725907",
+              "1447844"
+            ]
+          },
+          {
+            "id": "1832527",
+            "synopsis": "EMB-145 First Officer reported cabin altitude was uncontrollable and the flight crew elected to request an immediate descent. The flight continued to destination airport at a reduced altitude.",
+            "top3": [
+              "1596036",
+              "1493706",
+              "1716071"
+            ]
+          },
+          {
+            "id": "1850095",
+            "synopsis": "Air Carrier Ramp Personnel reported Hazmat cargo transported and improperly configured for air transport.",
+            "top3": [
+              "1793592",
+              "1739535",
+              "1640114"
+            ]
+          },
+          {
+            "id": "1704451",
+            "synopsis": "Air carrier pilot reported encountering a challenging approach while dealing with fatigue.",
+            "top3": [
+              "1137763",
+              "1816970",
+              "1296951"
+            ]
+          },
+          {
+            "id": "1680022",
+            "synopsis": "Flight Attendant reported a 'sulfur' type odor during multiple flight legs. Maintenance action at stop over greatly improved the conditions.",
+            "top3": [
+              "1018181",
+              "1796489",
+              "1810918"
+            ]
+          }
+        ]
+      },
+      "hybrid+rerank + phase filter": {
+        "recall@1": {
+          "mean": 0.65,
+          "ci95": [
+            0.6025,
+            0.6975
+          ]
+        },
+        "recall@5": {
+          "mean": 0.8175,
+          "ci95": [
+            0.78,
+            0.855
+          ]
+        },
+        "recall@10": {
+          "mean": 0.87,
+          "ci95": [
+            0.835,
+            0.9
+          ]
+        },
+        "mrr": {
+          "mean": 0.7211865981240981,
+          "ci95": [
+            0.6817415629509379,
+            0.7579191220238096
+          ]
+        },
+        "primary_problem_precision@5": {
+          "mean": 0.40706521739130436,
+          "ci95": [
+            0.3760869565217391,
+            0.44021739130434784
+          ]
+        },
+        "primary_problem_vote_accuracy": {
+          "mean": 0.5244565217391305,
+          "ci95": [
+            0.47554347826086957,
+            0.5734374999999997
+          ]
+        },
+        "anomaly_overlap@5": {
+          "mean": 0.7044999999999999,
+          "ci95": [
+            0.6759999999999999,
+            0.73425
+          ]
+        },
+        "misses@10": [
+          {
+            "id": "1832527",
+            "synopsis": "EMB-145 First Officer reported cabin altitude was uncontrollable and the flight crew elected to request an immediate descent. The flight continued to destination airport at a reduced altitude.",
+            "top3": [
+              "1596036",
+              "1011257",
+              "1481979"
+            ]
+          },
+          {
+            "id": "1850095",
+            "synopsis": "Air Carrier Ramp Personnel reported Hazmat cargo transported and improperly configured for air transport.",
+            "top3": [
+              "1793592",
+              "1650807",
+              "1152019"
+            ]
+          },
+          {
+            "id": "1844703",
+            "synopsis": "Controllers reported while accepting airspace of a closing facility; an aircraft entered a higher MVA.",
+            "top3": [
+              "1065330",
+              "1569352",
+              "1774558"
+            ]
+          },
+          {
+            "id": "1424003",
+            "synopsis": "HIO Tower Controller reported an airborne conflict when an arrival did not comply with instructions and came into conflict with a departure.",
+            "top3": [
+              "1291900",
+              "1293512",
+              "1276702"
+            ]
+          },
+          {
+            "id": "1810049",
+            "synopsis": "Pilot reported a near collision during departure after they announced their intentions on the wrong frequency. The Tower was closed at the time of the event.",
+            "top3": [
+              "1584265",
+              "988400",
+              "1678836"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "abstention": {
+    "auroc_all": 0.9944166666666666,
+    "auroc_by_group": {
+      "near_domain": 0.991625,
+      "far_domain": 1.0
+    },
+    "threshold_calibrated_on_half": -0.28240054845809937,
+    "heldout": {
+      "in_domain_kept": 0.98,
+      "out_of_scope_rejected": 0.9333333333333333,
+      "n_in_domain": 200,
+      "n_out_of_scope": 15
+    },
+    "score_medians": {
+      "in_domain": 4.341594457626343,
+      "near_domain": -3.9086239337921143,
+      "far_domain": -9.86237382888794
+    }
+  },
+  "answers_extractive": {
+    "abstain_on_out_of_scope": 0.9666666666666667,
+    "answered_when_in_domain": 0.99,
+    "citation_validity": 1.0,
+    "citation_recall": 0.7070707070707071,
+    "groundedness_sentence_level": 1.0,
+    "n_claims_checked": 297,
+    "ungrounded_examples": []
+  }
+}
