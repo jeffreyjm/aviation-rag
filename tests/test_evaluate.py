@@ -1,3 +1,5 @@
+import math
+
 import pytest
 
 from aviation_rag import evaluate as E
@@ -10,18 +12,15 @@ def test_rank_metrics():
     assert E.reciprocal_rank(["x"], {"y"}) == 0.0
 
 
-
 def test_auroc_and_threshold():
     assert E.auroc([3, 4], [1, 2]) == 1.0 and E.auroc([1], [1]) == 0.5
     assert 2 < E.best_threshold([5, 6, 7], [0, 1, 2]) <= 5
-
 
 
 def test_sample_queries_deterministic(index):
     a = [q["id"] for q in E.sample_queries(index.reports, 3, seed=1)]
     assert a == [q["id"] for q in E.sample_queries(index.reports, 3, seed=1)]
     assert len(set(a)) == 3
-
 
 
 def test_run_modes_and_precedent_metrics(retriever, index):
@@ -39,7 +38,6 @@ def test_run_modes_and_precedent_metrics(retriever, index):
         assert all(retriever.index.reports[i]["phase"] == q["phase"] for i in ranked)
 
 
-
 def test_abstention_split_is_heldout():
     ood = [{"query": str(i), "group": "near_domain" if i % 2 else "far_domain"} for i in range(8)]
     res = E.evaluate_abstention([10, 11, 12, 13, 14, 15], ood, [0, 1, 2, 3, 4, 5, 6, 7])
@@ -47,6 +45,26 @@ def test_abstention_split_is_heldout():
     assert res["heldout"]["n_in_domain"] == 3 and res["heldout"]["n_out_of_scope"] == 4
     assert set(res["auroc_by_group"]) == {"near_domain", "far_domain"}
 
+
+class RecordingNLI:
+    def __init__(self):
+        self.pairs = []
+
+    def entailment_prob(self, premises, hypotheses):
+        import numpy as np
+
+        self.pairs = list(zip(premises, hypotheses))
+        return np.array([1.0 if h in p else 0.0 for p, h in self.pairs])
+
+
+def test_groundedness_attributes_claims_to_their_own_citation_and_uses_windows():
+    ans = Answer("Alpha is true. [1] Beta holds. [2]", False,
+                 [Source(1, "r1", "t", "Intro text. Alpha is true. Tail."), Source(2, "r2", "t", "Beta holds.")], [1, 2])
+    nli = RecordingNLI()
+    r = E.evaluate_answers([(E.GoldItem("q", {"r1"}, True), ans)], nli)
+    assert r["groundedness_sentence_level"] == 1.0 and r["n_claims_checked"] == 2
+    assert all("Beta" not in p for p, h in nli.pairs if h == "Alpha is true.")
+    assert ("Alpha is true.", "Alpha is true.") in nli.pairs  # single-sentence window
 
 
 def test_answer_metrics_without_nli():
